@@ -27,7 +27,7 @@ router.post("/register", registerValidator, async (req, res, next) => {
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ msg: "User already exists" });
+      return res.status(400).json({ message: "User already exists with this email address." });
     }
 
     const verificationToken = crypto.randomBytes(20).toString("hex");
@@ -47,18 +47,18 @@ router.post("/register", registerValidator, async (req, res, next) => {
 
     await transporter.sendMail({
       to: user.email,
-      subject: "Email Verification",
-      html: `<h2>Email Verification</h2>
-             <p>Please click the link below to verify your email:</p>
+      subject: "Verify Your Email Address",
+      html: `<h2>Welcome to Our Platform</h2>
+             <p>Click the link below to verify your email:</p>
              <p><a href="${verificationUrl}">Verify Email</a></p>`,
     });
 
     res.status(201).json({
-      msg: "Registration successful! Please check your email to verify your account.",
+      message: "Registration successful! Check your email to verify your account.",
     });
   } catch (err) {
-    console.error(err);
-    next(err); 
+    console.error("Registration error:", err);
+    next(err);
   }
 });
 
@@ -74,7 +74,7 @@ router.post('/verify-email/:token', async (req, res, next) => {
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired verification token.',
+        message: 'The verification token is invalid or has expired. Please request a new one.',
       });
     }
 
@@ -88,12 +88,12 @@ router.post('/verify-email/:token', async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully!',
+      message: 'Your email has been successfully verified!',
       token: jwtToken,
     });
   } catch (error) {
     console.error('Verification error:', error);
-    next(error); 
+    next(error);
   }
 });
 
@@ -103,11 +103,11 @@ router.post("/resend-verification-code", async (req, res, next) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "No account found with this email address." });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ message: "Email already verified" });
+      return res.status(400).json({ message: "Your email is already verified." });
     }
 
     const verificationToken = crypto.randomBytes(20).toString("hex");
@@ -116,20 +116,20 @@ router.post("/resend-verification-code", async (req, res, next) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    const verificationUrl = ` https://todo-client-ashen.vercel.app/verify-email/${verificationToken}`;
+    const verificationUrl = `https://todo-client-ashen.vercel.app/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
       to: user.email,
-      subject: "Email Verification",
+      subject: "Verify Your Email Address",
       html: `<h2>Email Verification</h2>
-             <p>Please click the link below to verify your email:</p>
+             <p>Click the link below to verify your email:</p>
              <p><a href="${verificationUrl}">Verify Email</a></p>`,
     });
 
-    res.json({ message: "New verification email sent successfully" });
+    res.json({ message: "A new verification email has been sent to your inbox." });
   } catch (error) {
     console.error("Error resending verification code:", error);
-    next(error); 
+    next(error);
   }
 });
 
@@ -139,12 +139,12 @@ router.post("/login", loginValidator, async (req, res, next) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ msg: "Invalid email or password" });
+      return res.status(400).json({ message: "Incorrect email or password." });
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid email or password" });
+      return res.status(400).json({ message: "Incorrect email or password." });
     }
 
     const payload = { user: { id: user.id } };
@@ -161,24 +161,25 @@ router.post("/login", loginValidator, async (req, res, next) => {
     res.json({ accessToken, refreshToken });
   } catch (err) {
     console.error("Login error:", err);
-    next(err); 
+    next(err);
   }
 });
 
 router.post("/refresh-token", async (req, res, next) => {
   const { refreshToken } = req.body;
-  if (!refreshToken)
-    return res.status(400).json({ msg: "Refresh token required" });
+  if (!refreshToken) {
+    return res.status(400).json({ message: "A refresh token is required." });
+  }
 
   try {
     const user = await User.findOne({ refreshToken });
     if (!user) {
-      return res.status(401).json({ msg: "Invalid refresh token" });
+      return res.status(401).json({ message: "Invalid refresh token." });
     }
 
     jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
-        return res.status(401).json({ msg: "Invalid refresh token" });
+        return res.status(401).json({ message: "Invalid refresh token." });
       }
 
       const payload = { user: { id: decoded.user.id } };
@@ -189,85 +190,15 @@ router.post("/refresh-token", async (req, res, next) => {
       res.json({ accessToken: newAccessToken });
     });
   } catch (err) {
-    console.error(err);
+    console.error("Token refresh error:", err);
     next(err);
-  }
-});
-
-router.get("/current-user", auth, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
-      });
-    }
-
-    res.json({
-      success: true,
-      data: user
-    });
-  } catch (error) {
-    console.error("Error fetching current user:", error);
-    next(error); 
-  }
-});
-
-router.get('/auth/google', (req, res, next) => {
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    prompt: 'select_account'
-  })(req, res, next);
-});
-
-router.get('/google/callback', (req, res, next) => {
-  passport.authenticate('google', {
-    session: false,
-    failureRedirect: '/login',
-  }, (err, user, info) => {
-    if (err) {
-      console.error('Authentication error:', err);
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=${encodeURIComponent(err.message)}`);
-    }
-
-    if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=authentication_failed`);
-    }
-
-    try {
-      const token = jwt.sign(
-        { user: { id: user._id.toString(), email: user.email, username: user.username } },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      return res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${encodeURIComponent(token)}`);
-    } catch (error) {
-      console.error('Token creation error:', error);
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=token_creation_failed`);
-    }
-  })(req, res, next);
-});
-
-
-
-router.get("/profile", auth, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id).select("email");
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    res.json(user);
-  } catch (error) {
-    next(error); 
   }
 });
 
 router.use((err, req, res, next) => {
   console.error("Error:", err.message);
   res.status(err.status || 500).json({
-    message: err.message || "An unexpected error occurred",
+    message: err.message || "An unexpected error occurred. Please try again later.",
   });
 });
 

@@ -8,7 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from 'passport';
 import session from 'express-session';
-import initializePassport from './passport-setup.js';
+import initializePassport from './passport.js';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 

@@ -18,7 +18,7 @@ const sendEmailNotification = async (email, todo) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'You have been assigned a new task',
-    text: `You have been assigned a new task: ${todo.title}. View it here: http://localhost:5173/todos/${todo._id}`,
+    text: `You have been assigned a new task: ${todo.title}. View it here: https://todo-client-ashen.vercel.app/todos/${todo._id}`,
   };
 
   await transporter.sendMail(mailOptions);

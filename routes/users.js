@@ -43,7 +43,7 @@ router.post("/register", registerValidator, async (req, res, next) => {
 
     await user.save();
 
-    const verificationUrl = `http://localhost:5000/verify-email/${verificationToken}`;
+    const verificationUrl = `https://todo-fn88.onrender.com/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
       to: user.email,
@@ -116,7 +116,7 @@ router.post("/resend-verification-code", async (req, res, next) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    const verificationUrl = ` http://localhost:5173//verify-email/${verificationToken}`;
+    const verificationUrl = ` https://todo-client-ashen.vercel.app/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
       to: user.email,

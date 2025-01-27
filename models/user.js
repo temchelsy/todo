@@ -53,6 +53,7 @@ const UserSchema = new Schema({
   timestamps: true
 });
 
+// Adjusted pre-save middleware
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
 

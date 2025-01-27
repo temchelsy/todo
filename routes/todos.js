@@ -98,7 +98,7 @@ router.put("/api/todos/:id", auth, async (req, res) => {
     const updatedTodo = await Todo.findOneAndUpdate(
       { _id: id, userId },
       {
-        title: req.body.title, // Update only specific fields
+        title: req.body.title, 
         description: req.body.description,
       },
       { new: true }

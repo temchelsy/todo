@@ -117,8 +117,15 @@ router.put("/api/todos/:id", auth, async (req, res) => {
 
 router.get("/api/supervisor/todos/:todoId", auth, async (req, res) => {
   try {
-    const todo = await Todo.findOne({ _id: req.params.todoId });
-    
+    const { todoId } = req.params;
+
+    // Validate todoId format (optional, but recommended)
+    if (!/^[a-fA-F0-9]{24}$/.test(todoId)) {
+      return res.status(400).json({ error: "Invalid todo ID format" });
+    }
+
+    const todo = await Todo.findOne({ _id: todoId });
+
     if (!todo) {
       return res.status(404).json({ error: "Todo not found" });
     }
@@ -130,6 +137,7 @@ router.get("/api/supervisor/todos/:todoId", auth, async (req, res) => {
 
     res.status(200).json(todo);
   } catch (err) {
+    console.error("Error fetching todo:", err);
     res.status(500).json({ error: err.message });
   }
 });
